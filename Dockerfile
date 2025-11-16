@@ -11,6 +11,22 @@ RUN apt-get update && apt-get install -y \
     gzip \
     && rm -rf /var/lib/apt/lists/*
 
+# Download Piper binary based on architecture
+RUN mkdir -p /app/bin && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then \
+        PIPER_URL="https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_amd64.tar.gz"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        PIPER_URL="https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_arm64.tar.gz"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    cd /app/bin && \
+    curl -L -o piper.tar.gz "$PIPER_URL" && \
+    tar -xzf piper.tar.gz && \
+    rm piper.tar.gz && \
+    chmod +x /app/bin/piper
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
@@ -25,11 +41,8 @@ COPY build.sh .
 # Make build script executable
 RUN chmod +x build.sh
 
-# Download Piper binary and model during build
+# Download model files during build
 RUN ./build.sh
-
-# Ensure Piper binary is executable
-RUN chmod +x /app/bin/piper
 
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
