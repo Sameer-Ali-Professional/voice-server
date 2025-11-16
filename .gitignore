@@ -9,10 +9,11 @@ venv/
 ENV/
 .venv
 
-# Models (uncomment if you don't want to commit models)
-# models/
-# *.onnx
-# *.onnx.json
+# Models (downloaded during Railway build)
+models/*.onnx
+models/*.onnx.json
+*.onnx
+*.onnx.json
 
 # Piper binary (downloaded during build)
 bin/
