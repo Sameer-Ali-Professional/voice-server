@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,16 +8,46 @@ env/
 venv/
 ENV/
 .venv
-.git/
-.gitignore
+
+# Models (downloaded during build)
+models/*.onnx
+models/*.onnx.json
+*.onnx
+*.onnx.json
+
+# Piper binary (downloaded during build)
+bin/
+*.tar.gz
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
 *.log
+
+# Railway
+.railway/
+
+# Git
+.git/
+.gitignore
+
+# Documentation (optional - comment out if you want them in image)
 README.md
+RAILWAY.md
+DEPLOYMENT_CHECKLIST.md
+
+# Scripts (keep build.sh, exclude others)
 start.sh
 start.bat
 
+# Config files not needed in Docker
+nixpacks.toml
+railway.json
