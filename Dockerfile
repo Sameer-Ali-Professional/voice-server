@@ -28,6 +28,9 @@ RUN chmod +x build.sh
 # Download Piper binary and model during build
 RUN ./build.sh
 
+# Ensure Piper binary is executable
+RUN chmod +x /app/bin/piper
+
 # Expose port (Railway will set PORT env var)
 EXPOSE 8000
 
