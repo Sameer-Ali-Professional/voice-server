@@ -45,7 +45,8 @@ TMP_PIPER_PATH = "/tmp/piper"
 
 @app.on_event("startup")
 async def startup_event():
-    """Copy piper binary to /tmp and make it executable at startup."""
+    """Copy piper binary to /tmp and make it executable at startup.
+    This must complete before any TTS operations can run."""
     source_path = Path("/app/bin/piper")
     dest_path = Path(TMP_PIPER_PATH)
     
@@ -54,11 +55,17 @@ async def startup_event():
             logger.info(f"Copying piper from {source_path} to {dest_path}")
             shutil.copy2(source_path, dest_path)
             os.chmod(dest_path, 0o755)  # Make executable (rwxr-xr-x)
-            logger.info(f"Piper binary copied to {dest_path} and made executable")
+            
+            # Verify the copy was successful
+            if not dest_path.exists() or not os.access(dest_path, os.X_OK):
+                raise RuntimeError(f"Failed to verify copied binary at {dest_path}")
+            
+            logger.info(f"Piper binary successfully copied to {dest_path} and made executable")
         else:
             logger.warning(f"Source piper binary not found at {source_path}, skipping copy")
     except Exception as e:
         logger.error(f"Failed to copy piper binary: {e}")
+        raise  # Re-raise to prevent server from starting without piper
 
 
 class SpeakRequest(BaseModel):
@@ -81,7 +88,13 @@ def find_piper_binary() -> Optional[str]:
         if os.path.exists(PIPER_BINARY) and os.access(PIPER_BINARY, os.X_OK):
             return PIPER_BINARY
     
-    # Check local bin directory (for Railway build)
+    # Check /app/bin/piper as fallback (should be copied to /tmp at startup)
+    app_bin_path = Path("/app/bin/piper")
+    if app_bin_path.exists() and os.access(app_bin_path, os.X_OK):
+        logger.warning(f"/tmp/piper not found, falling back to {app_bin_path}. Copy may have failed at startup.")
+        return str(app_bin_path)
+    
+    # Check local bin directory (for local development)
     local_bin = Path(__file__).parent / "bin" / "piper"
     if local_bin.exists() and os.access(local_bin, os.X_OK):
         return str(local_bin)
