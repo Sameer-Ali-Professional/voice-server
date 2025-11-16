@@ -10,6 +10,7 @@ from pydantic import BaseModel
 import subprocess
 import json
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
 import logging
@@ -38,6 +39,27 @@ DEFAULT_VOICE = os.getenv("PIPER_DEFAULT_VOICE", "en_US-lessac-medium")
 # Global model cache
 loaded_model: Optional[str] = None
 
+# Path to copied piper binary in /tmp
+TMP_PIPER_PATH = "/tmp/piper"
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Copy piper binary to /tmp and make it executable at startup."""
+    source_path = Path("/app/bin/piper")
+    dest_path = Path(TMP_PIPER_PATH)
+    
+    try:
+        if source_path.exists():
+            logger.info(f"Copying piper from {source_path} to {dest_path}")
+            shutil.copy2(source_path, dest_path)
+            os.chmod(dest_path, 0o755)  # Make executable (rwxr-xr-x)
+            logger.info(f"Piper binary copied to {dest_path} and made executable")
+        else:
+            logger.warning(f"Source piper binary not found at {source_path}, skipping copy")
+    except Exception as e:
+        logger.error(f"Failed to copy piper binary: {e}")
+
 
 class SpeakRequest(BaseModel):
     text: str
@@ -50,7 +72,11 @@ class SpeakRequest(BaseModel):
 
 def find_piper_binary() -> Optional[str]:
     """Find the piper binary in PATH or common locations."""
-    # Check environment variable first (for Railway)
+    # Check /tmp/piper first (copied at startup)
+    if os.path.exists(TMP_PIPER_PATH) and os.access(TMP_PIPER_PATH, os.X_OK):
+        return TMP_PIPER_PATH
+    
+    # Check environment variable (for Railway)
     if PIPER_BINARY and PIPER_BINARY != "piper":
         if os.path.exists(PIPER_BINARY) and os.access(PIPER_BINARY, os.X_OK):
             return PIPER_BINARY
